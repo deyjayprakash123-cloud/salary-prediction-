@@ -5,82 +5,120 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-
+# ==========================================
+# 1. LOAD AND CLEAN DATA (EDA for Beginners)
+# ==========================================
+# Make sure your file name matches this string exactly!
 df = pd.read_csv("data.csv")
 
+print("--- 📊 TASK 1: DATA PROFILE ---")
+print("Dataset Row and Column Count:", df.shape)
+print("\nMissing Values Count per Column:")
+print(df.isnull().sum())
 
+# Basic handling of missing values using simple pandas methods
 df['Salary_LPA'] = df['Salary_LPA'].fillna(df['Salary_LPA'].median())
+df['Company_Rating'] = df['Company_Rating'].fillna(df['Company_Rating'].median())
+df['Openings'] = df['Openings'].fillna(1)
+df['Applicants'] = df['Applicants'].fillna(0)
 
-
-df = df.dropna(subset=['City', 'Experience_Level', 'Work_Mode', 'Salary_LPA'])
-
-
-X = df[['City', 'Experience_Level', 'Work_Mode']].copy()
-y = df['Salary_LPA']
-le_city = LabelEncoder()
-le_exp = LabelEncoder()
-le_mode = LabelEncoder()
-
-
-X['City'] = le_city.fit_transform(X['City'])
-X['Experience_Level'] = le_exp.fit_transform(X['Experience_Level'])
-X['Work_Mode'] = le_mode.fit_transform(X['Work_Mode'])
-
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-
-model = LinearRegression()
-model.fit(X_train, y_train)
-
-predictions = model.predict(X_test)
-print("Model trained successfully!")
-print("Model Mean Absolute Error:", round(mean_absolute_error(y_test, predictions), 2), "LPA")
+# Drop any rows where critical string values are completely blank
+df = df.dropna(subset=['Job_Title', 'City', 'Experience_Level', 'Company_Type', 'Skills_Required'])
 print("-" * 50)
 
 
+# ==========================================
+# 2. BUSINESS INSIGHT ANALYTICS
+# ==========================================
+print("\n--- 🏢 TASK 2: COMPANY TYPE ANALYSIS ---")
+print(df.groupby('Company_Type')[['Salary_LPA', 'Applicants']].mean())
+print("-" * 50)
 
-print("\n🔮 --- CUSTOM SALARY PREDICTOR SYSTEM --- 🔮")
-print("Please enter the details below to predict expected salary:")
+print("\n--- 📍 TASK 3: CITY-WISE HIRING TRENDS ---")
+print(pd.crosstab(df['City'], df['Location_Tier']))
+print("-" * 50)
+
+print("\n--- 🎓 TASK 4: FRESHER VS SENIOR SALARY MATRIX ---")
+print(df.groupby(['Company_Type', 'Experience_Level'])['Salary_LPA'].mean().unstack())
+print("-" * 50)
 
 
-valid_cities = list(le_city.classes_)
-valid_exps = list(le_exp.classes_)
-valid_modes = list(le_mode.classes_)
+# ==========================================
+# 3. SKILLS DEMAND ANALYSIS (Basic Loops)
+# ==========================================
+print("\n--- 🤖 TASK 5: SKILLS DEMAND ANALYSIS ---")
+skill_salary_map = {}
 
-print(f"\nAvailable Cities in dataset: {valid_cities}")
-user_city = input("Enter City Name exactly as shown above: ")
-print(f"Available Experience Levels: {valid_exps}")
-user_exp = input("Enter Experience Level exactly as shown above: ")
-print(f"Available Job Modes: {valid_modes}")
-user_mode = input("Enter Job Mode exactly as shown above: ")
-
-
-if (user_city in valid_cities) and (user_exp in valid_exps) and (user_mode in valid_modes):
+for idx, row in df.iterrows():
+    # Split string by commas into a simple list of individual skills
+    individual_skills = [skill.strip() for skill in str(row['Skills_Required']).split(',')]
+    current_salary = row['Salary_LPA']
     
-    
-    encoded_city = le_city.transform([user_city])[0]
-    encoded_exp = le_exp.transform([user_exp])[0]
-    encoded_mode = le_mode.transform([user_mode])[0]
-    
-  
-    user_features = np.array([[encoded_city, encoded_exp, encoded_mode]])
-    
-  
-    predicted_salary = model.predict(user_features)[0]
-    
-    print("\n" + "="*40)
-    print(f"🚀 PREDICTED SALARY: {predicted_salary:.2f} LPA")
-    print("="*40)
+    for skill in individual_skills:
+        if skill not in skill_salary_map:
+            skill_salary_map[skill] = []
+        skill_salary_map[skill].append(current_salary)
 
-else:
-    print("\n❌ Input Error: One or more inputs were spelled incorrectly. Please try again and match case exactly!")
+# Average out the salaries gathered inside our raw list
+skill_avg_payout = {skill: np.mean(salaries) for skill, salaries in skill_salary_map.items()}
+highest_paying_skills = sorted(skill_avg_payout.items(), key=lambda x: x[1], reverse=True)[:5]
+
+print("Top 5 Highest Paying Skills:")
+for skill, avg_salary in highest_paying_skills:
+    print(f" - {skill}: {avg_salary:.2f} LPA")
+print("-" * 50)
+
+
+# ==========================================
+# 4. MACHINE LEARNING ENGINE (Regression)
+# ==========================================
+print("\n--- 🧮 TASK 6: SALARY PREDICTION ENGINE ---")
+
+# Isolate feature matrix X and target y
+X = df[['Job_Title', 'City', 'Experience_Level']].copy()
+y = df['Salary_LPA']
+
+# Traditional Label Encoding arrays
+le_title = LabelEncoder()
+le_city = LabelEncoder()
+le_exp = LabelEncoder()
+
+X['Job_Title'] = le_title.fit_transform(X['Job_Title'])
+X['City'] = le_city.fit_transform(X['City'])
+X['Experience_Level'] = le_exp.fit_transform(X['Experience_Level'])
+
+# Train test split (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Linear Regression Training step
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Making predictions and extracting standard errors
+predictions = model.predict(X_test)
+print("Mean Absolute Error (MAE):", mean_absolute_error(y_test, predictions))
+print("Root Mean Squared Error (RMSE):", np.sqrt(mean_squared_error(y_test, predictions)))
+print("-" * 50)
+
+
+# ==========================================
+# 5. DATA VISUALIZATION
+# ==========================================
 plt.figure(figsize=(10, 6))
-sns.barplot(data=df, x='Work_Mode', y='Salary_LPA', hue='Experience_Level', errorbar=None)
-plt.title('Salary Compensation Matrix across Job Modes & Experience')
-plt.xlabel('Job Mode')
+
+sns.barplot(
+    data=df, 
+    x='Company_Type', 
+    y='Salary_LPA', 
+    hue='Experience_Level', 
+    errorbar=None
+)
+
+plt.title('Salary Compensation Matrix across Company Types')
+plt.xlabel('Company Type')
 plt.ylabel('Average Salary (LPA)')
+plt.grid(axis='y', linestyle='--', alpha=0.5)
 plt.tight_layout()
 plt.show()
