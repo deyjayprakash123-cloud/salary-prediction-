@@ -7,10 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-# ==========================================
-# 1. LOAD AND CLEAN DATA (EDA for Beginners)
-# ==========================================
-# Make sure your file name matches this string exactly!
+
 df = pd.read_csv("data.csv")
 
 print("--- 📊 TASK 1: DATA PROFILE ---")
@@ -18,20 +15,15 @@ print("Dataset Row and Column Count:", df.shape)
 print("\nMissing Values Count per Column:")
 print(df.isnull().sum())
 
-# Basic handling of missing values using simple pandas methods
+
 df['Salary_LPA'] = df['Salary_LPA'].fillna(df['Salary_LPA'].median())
 df['Company_Rating'] = df['Company_Rating'].fillna(df['Company_Rating'].median())
 df['Openings'] = df['Openings'].fillna(1)
 df['Applicants'] = df['Applicants'].fillna(0)
-
-# Drop any rows where critical string values are completely blank
 df = df.dropna(subset=['Job_Title', 'City', 'Experience_Level', 'Company_Type', 'Skills_Required'])
 print("-" * 50)
 
 
-# ==========================================
-# 2. BUSINESS INSIGHT ANALYTICS
-# ==========================================
 print("\n--- 🏢 TASK 2: COMPANY TYPE ANALYSIS ---")
 print(df.groupby('Company_Type')[['Salary_LPA', 'Applicants']].mean())
 print("-" * 50)
@@ -45,14 +37,12 @@ print(df.groupby(['Company_Type', 'Experience_Level'])['Salary_LPA'].mean().unst
 print("-" * 50)
 
 
-# ==========================================
-# 3. SKILLS DEMAND ANALYSIS (Basic Loops)
-# ==========================================
+
 print("\n--- 🤖 TASK 5: SKILLS DEMAND ANALYSIS ---")
 skill_salary_map = {}
 
 for idx, row in df.iterrows():
-    # Split string by commas into a simple list of individual skills
+
     individual_skills = [skill.strip() for skill in str(row['Skills_Required']).split(',')]
     current_salary = row['Salary_LPA']
     
@@ -61,7 +51,7 @@ for idx, row in df.iterrows():
             skill_salary_map[skill] = []
         skill_salary_map[skill].append(current_salary)
 
-# Average out the salaries gathered inside our raw list
+
 skill_avg_payout = {skill: np.mean(salaries) for skill, salaries in skill_salary_map.items()}
 highest_paying_skills = sorted(skill_avg_payout.items(), key=lambda x: x[1], reverse=True)[:5]
 
@@ -71,16 +61,13 @@ for skill, avg_salary in highest_paying_skills:
 print("-" * 50)
 
 
-# ==========================================
-# 4. MACHINE LEARNING ENGINE (Regression)
-# ==========================================
 print("\n--- 🧮 TASK 6: SALARY PREDICTION ENGINE ---")
 
-# Isolate feature matrix X and target y
+
 X = df[['Job_Title', 'City', 'Experience_Level']].copy()
 y = df['Salary_LPA']
 
-# Traditional Label Encoding arrays
+
 le_title = LabelEncoder()
 le_city = LabelEncoder()
 le_exp = LabelEncoder()
@@ -89,23 +76,21 @@ X['Job_Title'] = le_title.fit_transform(X['Job_Title'])
 X['City'] = le_city.fit_transform(X['City'])
 X['Experience_Level'] = le_exp.fit_transform(X['Experience_Level'])
 
-# Train test split (80% train, 20% test)
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Linear Regression Training step
+
 model = LinearRegression()
 model.fit(X_train, y_train)
 
-# Making predictions and extracting standard errors
+
 predictions = model.predict(X_test)
 print("Mean Absolute Error (MAE):", mean_absolute_error(y_test, predictions))
 print("Root Mean Squared Error (RMSE):", np.sqrt(mean_squared_error(y_test, predictions)))
 print("-" * 50)
 
 
-# ==========================================
-# 5. DATA VISUALIZATION
-# ==========================================
+
 plt.figure(figsize=(10, 6))
 
 sns.barplot(
